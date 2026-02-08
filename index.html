@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charity Funding Optimiser</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Charity Funding Optimiser</h1>
+            <p class="tagline">Align your funding bid with what funders are looking for</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Progress Bar -->
+        <div class="progress-bar">
+            <div class="progress-step active" data-step="1">
+                <span class="progress-circle">1</span>
+                <span class="progress-label">Your Input</span>
+            </div>
+            <div class="progress-line"></div>
+            <div class="progress-step" data-step="2">
+                <span class="progress-circle">2</span>
+                <span class="progress-label">Develop &amp; Refine</span>
+            </div>
+            <div class="progress-line"></div>
+            <div class="progress-step" data-step="3">
+                <span class="progress-circle">3</span>
+                <span class="progress-label">Your Funding Request</span>
+            </div>
+        </div>
+
+        <!-- Step 1: Initial Input -->
+        <section id="step-1" class="card">
+            <h2 class="section-title">Tell us about your application</h2>
+
+            <form id="input-form">
+                <div class="form-group">
+                    <label for="funder-name">Funding organisation name</label>
+                    <input
+                        type="text"
+                        id="funder-name"
+                        name="funder-name"
+                        placeholder="e.g. National Lottery Community Fund, Comic Relief, Lloyds Foundation"
+                        required
+                        autocomplete="off"
+                    >
+                    <p class="help-text">The organisation you're applying to for funding</p>
+                </div>
+
+                <div class="form-group">
+                    <label>What have you got?</label>
+                    <div class="mode-selector">
+                        <button type="button" class="mode-card active" data-mode="draft">
+                            <span class="mode-icon">&#9998;</span>
+                            <span class="mode-title">I have a draft funding bid</span>
+                            <span class="mode-desc">Optimise and align my existing draft</span>
+                        </button>
+                        <button type="button" class="mode-card" data-mode="notes">
+                            <span class="mode-icon">&#9783;</span>
+                            <span class="mode-title">I have rough notes or bullet points</span>
+                            <span class="mode-desc">Help me build a structured bid from scratch</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="user-input">Your content</label>
+                    <textarea
+                        id="user-input"
+                        name="user-input"
+                        rows="10"
+                        required
+                    ></textarea>
+                    <p class="help-text" id="input-help-text">Paste or type your draft funding bid here. Include as much detail as you can.</p>
+                </div>
+
+                <button type="submit" id="analyse-btn" class="btn-primary">
+                    Analyse My Input
+                </button>
+            </form>
+        </section>
+
+        <!-- Loading State -->
+        <section id="loading-section" class="card hidden">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <p id="loading-message" class="loading-text">Analysing your input...</p>
+            </div>
+        </section>
+
+        <!-- Step 2: Working Page -->
+        <section id="step-2" class="card hidden">
+            <h2 class="section-title">Let's strengthen your application</h2>
+
+            <!-- Summary Card -->
+            <div class="summary-card">
+                <h3>What we found in your input</h3>
+                <div id="detected-summary"></div>
+                <div class="funder-priorities-summary">
+                    <h4>Funder priorities</h4>
+                    <div id="funder-priorities-list"></div>
+                </div>
+            </div>
+
+            <!-- Smart Questions -->
+            <div class="questions-section">
+                <h3>Help us fill in the gaps</h3>
+                <p class="questions-intro">Answer what you can — the more detail you provide, the stronger your funding request will be.</p>
+
+                <div id="questions-container"></div>
+            </div>
+
+            <!-- Step 2 Actions -->
+            <div class="step-actions">
+                <button type="button" id="rework-btn" class="btn-outline">Rework Analysis</button>
+                <button type="button" id="generate-btn" class="btn-primary">Generate My Funding Request</button>
+            </div>
+        </section>
+
+        <!-- Step 3: Final Output -->
+        <section id="step-3" class="card hidden">
+            <h2 class="section-title">Your Funding Request</h2>
+
+            <!-- Generated Document -->
+            <div class="output-document">
+                <div id="funding-request-output" class="document-content"></div>
+            </div>
+
+            <!-- Funder Alignment Notes -->
+            <div class="alignment-section">
+                <h3>Funder Alignment Notes</h3>
+                <div id="alignment-notes"></div>
+            </div>
+
+            <!-- Gaps Flagged -->
+            <div id="gaps-section" class="gaps-section hidden">
+                <h3>Areas to Address</h3>
+                <div id="gaps-list"></div>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="disclaimer">
+                <strong>Important:</strong> This is an AI-generated funding request. Always verify the funder's current priorities on their official website and tailor your application to their specific guidance. Review and edit thoroughly before submission.
+            </div>
+
+            <!-- Step 3 Actions -->
+            <div class="step-actions output-actions">
+                <button type="button" id="copy-btn" class="btn-secondary">Copy to Clipboard</button>
+                <button type="button" id="edit-btn" class="btn-secondary">Edit This Request</button>
+                <button type="button" id="back-to-step2-btn" class="btn-outline">Back to Working Page</button>
+                <button type="button" id="start-over-btn" class="btn-outline btn-danger">Start Over</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>Charity Funding Optimiser &mdash; a free tool to help UK charities strengthen their funding applications.</p>
+            <p class="footer-note">This tool provides AI-assisted suggestions only. Always follow the funder's official application guidance.</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

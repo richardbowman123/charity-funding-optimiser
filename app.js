@@ -406,6 +406,8 @@
             if (ai.projectTypes && ai.projectTypes.length > 0) state.detected.projectTypes = ai.projectTypes;
             if (ai.strengths) state.detected.strengths = ai.strengths;
             if (ai.gaps) state.detected.aiGaps = ai.gaps;
+            if (ai.funderCriteria) state.detected.funderCriteria = ai.funderCriteria;
+            if (ai.funderTip) state.detected.funderTip = ai.funderTip;
         } catch (err) {
             clearInterval(msgInterval);
             showError('We cannot analyse your request at this time. Please try again in a moment.');
@@ -498,13 +500,15 @@
 
         detectedSummary.innerHTML = html;
 
-        // Funder priorities
+        // Funder priorities — use AI-detected criteria from website if available, otherwise use local
         var fhtml = '<ul>';
-        state.funderInfo.values.forEach(function (v) {
+        var criteria = (d.funderCriteria && d.funderCriteria.length > 0) ? d.funderCriteria : state.funderInfo.values;
+        criteria.forEach(function (v) {
             fhtml += '<li>' + escapeHtml(v) + '</li>';
         });
         fhtml += '</ul>';
-        fhtml += '<p style="font-size: 0.85rem; margin-top: 8px; color: #5d6d7e;"><strong>Tip:</strong> ' + escapeHtml(state.funderInfo.tip) + '</p>';
+        var tip = d.funderTip || state.funderInfo.tip;
+        fhtml += '<p style="font-size: 0.85rem; margin-top: 8px; color: #5d6d7e;"><strong>Tip:</strong> ' + escapeHtml(tip) + '</p>';
         funderPrioritiesList.innerHTML = fhtml;
     }
 

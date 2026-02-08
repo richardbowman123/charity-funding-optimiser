@@ -1,9 +1,12 @@
 // Charity Funding Optimiser — App Logic (v2)
 // 3-step collaborative flow: Input → Develop & Refine → Final Output
-// The generateDocument function is the single point to swap in a real API later.
+// Uses Cloudflare Workers AI for analysis and document generation.
 
 (function () {
     'use strict';
+
+    // ===== API Configuration =====
+    var API_URL = 'https://charity-funding-api.charityfundingtool.workers.dev';
 
     // ===== State =====
     var state = {
@@ -350,17 +353,66 @@
     async function goToStep2() {
         updateProgress(2);
 
-        var messages = [
+        // Show loading while AI analyses
+        showSection('loading-section');
+        var msgIdx = 0;
+        var aiMessages = [
             'Analysing your input\u2026',
             'Identifying key information\u2026',
             'Checking funder priorities\u2026',
             'Preparing your working page\u2026'
         ];
-        await showLoading(messages, 2500 + Math.random() * 1000);
+        loadingMessage.textContent = aiMessages[0];
+        var msgInterval = setInterval(function () {
+            msgIdx++;
+            if (msgIdx < aiMessages.length) {
+                loadingMessage.textContent = aiMessages[msgIdx];
+            }
+        }, 2000);
 
-        // Analyse input
+        // Start with local detection (instant, always works)
         state.detected = analyseInput(state.userInput);
         state.funderInfo = getFunderInfo(state.funderName);
+
+        // Call AI for analysis
+        try {
+            var response = await fetch(API_URL + '/analyse', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    funderName: state.funderName,
+                    userInput: state.userInput,
+                    mode: state.mode
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('API returned ' + response.status);
+            }
+
+            var data = await response.json();
+            var ai = data.analysis || {};
+
+            // Merge AI analysis with local detection (AI takes priority where it found something)
+            if (ai.amount) state.detected.amount = ai.amount;
+            if (ai.fundingType) state.detected.fundingType = ai.fundingType;
+            if (ai.duration) state.detected.duration = ai.duration;
+            if (ai.beneficiaries) state.detected.beneficiaries = ai.beneficiaries;
+            if (ai.reach) state.detected.reach = ai.reach;
+            if (ai.evidence) { state.detected.evidence = ai.evidence; state.detected.hasEvidence = true; }
+            if (ai.success) { state.detected.success = ai.success; state.detected.hasOutcomes = true; }
+            if (ai.sustainability) { state.detected.sustainability = ai.sustainability; state.detected.hasSustainability = true; }
+            if (ai.projectSummary) state.detected.projectSummary = ai.projectSummary;
+            if (ai.projectTypes && ai.projectTypes.length > 0) state.detected.projectTypes = ai.projectTypes;
+            if (ai.strengths) state.detected.strengths = ai.strengths;
+            if (ai.gaps) state.detected.aiGaps = ai.gaps;
+        } catch (err) {
+            clearInterval(msgInterval);
+            showError('We cannot analyse your request at this time. Please try again in a moment.');
+            return;
+        }
+
+        clearInterval(msgInterval);
 
         // Pre-fill answers from detected data
         if (state.detected.amount && !state.answers.amount) state.answers.amount = state.detected.amount;
@@ -421,6 +473,27 @@
             });
         } else {
             html += '<p>We couldn\'t detect specific details from your input yet \u2014 answer the questions below to build a strong application.</p>';
+        }
+
+        // AI project summary
+        if (d.projectSummary) {
+            html += '<p style="margin-top: 12px;"><strong>Project summary:</strong> ' + escapeHtml(d.projectSummary) + '</p>';
+        }
+
+        // AI-detected strengths
+        if (d.strengths && d.strengths.length > 0) {
+            html += '<p style="margin-top: 10px;"><strong>Strengths identified:</strong></p>';
+            d.strengths.forEach(function (s) {
+                html += '<span class="detected-tag">' + escapeHtml(s) + '</span>';
+            });
+        }
+
+        // AI-detected gaps
+        if (d.aiGaps && d.aiGaps.length > 0) {
+            html += '<p style="margin-top: 10px;"><strong>Areas to strengthen:</strong></p>';
+            d.aiGaps.forEach(function (g) {
+                html += '<span class="detected-tag" style="background: #fef3cd; border-color: #f1c40f; color: #856404;">' + escapeHtml(g) + '</span>';
+            });
         }
 
         detectedSummary.innerHTML = html;
@@ -557,13 +630,58 @@
 
         updateProgress(3);
 
-        var messages = state.mode === 'draft'
-            ? ['Refining your draft\u2026', 'Aligning with funder priorities\u2026', 'Polishing your funding request\u2026', 'Finalising document\u2026']
-            : ['Building your funding request\u2026', 'Structuring your bid\u2026', 'Aligning with funder priorities\u2026', 'Finalising document\u2026'];
+        // Show loading while AI generates
+        showSection('loading-section');
+        var genIdx = 0;
+        var genMessages = state.mode === 'draft'
+            ? ['Refining your draft\u2026', 'Aligning with funder priorities\u2026', 'Writing your funding request\u2026', 'Polishing the final document\u2026']
+            : ['Building your funding request\u2026', 'Structuring your bid\u2026', 'Aligning with funder priorities\u2026', 'Writing the final document\u2026'];
+        loadingMessage.textContent = genMessages[0];
+        var genInterval = setInterval(function () {
+            genIdx++;
+            if (genIdx < genMessages.length) {
+                loadingMessage.textContent = genMessages[genIdx];
+            }
+        }, 3000);
 
-        await showLoading(messages, 3000 + Math.random() * 1000);
+        var output;
 
-        var output = generateDocument();
+        // Call AI to generate the document
+        try {
+            var response = await fetch(API_URL + '/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    funderName: state.funderName,
+                    userInput: state.userInput,
+                    mode: state.mode,
+                    answers: state.answers,
+                    notSure: state.notSure,
+                    funderInfo: state.funderInfo
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('API returned ' + response.status);
+            }
+
+            var data = await response.json();
+            if (!data.document || data.document.trim().length < 100) {
+                throw new Error('Response too short');
+            }
+
+            output = {
+                document: data.document,
+                alignment: data.alignment || ''
+            };
+        } catch (err) {
+            clearInterval(genInterval);
+            showError('We cannot generate your funding request at this time. Please try again in a moment.');
+            return;
+        }
+
+        clearInterval(genInterval);
+
         fundingRequestOutput.innerHTML = output.document;
         alignmentNotes.innerHTML = output.alignment;
 
@@ -828,6 +946,27 @@
         showSection('step-1');
         step1.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
+
+    // ===== Error Display =====
+    function showError(message) {
+        loadingMessage.textContent = message;
+        loadingSection.querySelector('.spinner').style.display = 'none';
+        // Add a "Go Back" button if there isn't one already
+        if (!loadingSection.querySelector('.error-back-btn')) {
+            var backButton = document.createElement('button');
+            backButton.className = 'btn-outline error-back-btn';
+            backButton.textContent = 'Go Back';
+            backButton.style.marginTop = '20px';
+            backButton.addEventListener('click', function () {
+                loadingSection.querySelector('.spinner').style.display = '';
+                backButton.remove();
+                updateProgress(1);
+                showSection('step-1');
+                step1.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            loadingSection.querySelector('.loading-content').appendChild(backButton);
+        }
+    }
 
     // ===== Utility =====
     function escapeHtml(str) {

@@ -750,6 +750,11 @@ footer p {
     opacity: 0.7;
 }
 
+/* ===== Error State ===== */
+.loading-content .error-back-btn {
+    display: inline-block;
+}
+
 /* ===== Utility ===== */
 .hidden {
     display: none !important;
